@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--PWA-->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#16202a">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!--/PWA-->
+<title>Cut Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: phone-first app shell. Sticky top bar, four views, fixed bottom tab bar. Exercise cards = animated figure on top, log underneath. */
+:root{
+  --bg:#f2f4f6; --surface:#ffffff; --stage:#e9edf1; --ink:#16202a; --muted:#5b6871; --line:#d8dee4;
+  --accent:#d39200; --accent-ink:#875b00; --accent-soft:#fbf0d6; --on-accent:#1d1500;
+  --good:#2e7a4d; --good-soft:#e1f1e7; --warn:#b4511a; --warn-soft:#fbe7dc;
+  --fig:#16202a; --fig-far:#a2adb6; --prop:#aab4bd; --prop-fill:#dde3e8;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,Roboto,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e141a; --surface:#151d25; --stage:#111920; --ink:#e5eaee; --muted:#95a2ad; --line:#26313b;
+  --accent:#e2a72b; --accent-ink:#f0bf55; --accent-soft:#2b2412; --on-accent:#1d1500;
+  --good:#63c08a; --good-soft:#132a1d; --warn:#ec8c57; --warn-soft:#2e1d14;
+  --fig:#e5eaee; --fig-far:#4f5d69; --prop:#3d4a56; --prop-fill:#1c2630; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e141a; --surface:#151d25; --stage:#111920; --ink:#e5eaee; --muted:#95a2ad; --line:#26313b;
+  --accent:#e2a72b; --accent-ink:#f0bf55; --accent-soft:#2b2412; --on-accent:#1d1500;
+  --good:#63c08a; --good-soft:#132a1d; --warn:#ec8c57; --warn-soft:#2e1d14;
+  --fig:#e5eaee; --fig-far:#4f5d69; --prop:#3d4a56; --prop-fill:#1c2630; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-tap-highlight-color:transparent}
+h1,h2,h3{font-family:var(--f-display);line-height:1.1;margin:0;text-wrap:balance;letter-spacing:.01em}
+h2{font-size:1.6rem;text-transform:uppercase}
+h3{font-size:1.25rem}
+p{margin:0;max-width:68ch}
+ul,ol{margin:0;padding-left:1.2em}
+li+li{margin-top:.35em}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink)}
+
+/* shell */
+.appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.appbar-in{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:10px;display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.brand{font-family:var(--f-display);font-weight:700;font-size:1.45rem;text-transform:uppercase;letter-spacing:.02em}
+.brand b{color:var(--accent-ink)}
+.today{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);text-align:right}
+main{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:16px calc(92px + env(safe-area-inset-bottom,0px))}
+.view{display:flex;flex-direction:column;gap:22px}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabbar-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tab{background:none;border:0;padding:9px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer}
+.tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tab[aria-selected="true"]{color:var(--ink)}
+.tab[aria-selected="true"] svg{stroke:var(--accent)}
+
+/* train */
+.days{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.dbtn{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 4px;display:flex;flex-direction:column;align-items:center;cursor:pointer;min-width:0}
+.dbtn b{font-size:.86rem;white-space:nowrap}
+.dbtn span{font-family:var(--f-mono);font-size:.68rem;color:var(--muted)}
+.dbtn[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.dbtn[aria-pressed="true"] span{color:var(--accent-ink)}
+.dbtn.is-today b::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-left:5px;vertical-align:middle}
+.dayhead{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.dayhead h2{font-size:2rem}
+.progress{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-family:var(--f-mono);font-size:.78rem;color:var(--muted)}
+.bar{width:130px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.banner{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--good);border-radius:0 8px 8px 0;padding:12px 14px}
+details.guide{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+details.guide summary{cursor:pointer;padding:11px 14px;font-weight:600;list-style:none;display:flex;justify-content:space-between}
+details.guide summary::after{content:"+";font-family:var(--f-mono);color:var(--muted)}
+details.guide[open] summary::after{content:"–"}
+details.guide .gbody{padding:0 14px 14px;display:grid;gap:14px;grid-template-columns:1fr 1fr}
+@media (max-width:640px){details.guide .gbody{grid-template-columns:1fr}}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.stage{position:relative;background:var(--stage)}
+.stage canvas{display:block;width:100%;aspect-ratio:3/2;max-width:100%}
+.stage .num{position:absolute;top:8px;left:10px;font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.cbody{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px;flex:1}
+.ctop{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.cname{font-weight:700;font-size:1rem;min-width:0}
+.cspec{font-family:var(--f-mono);font-size:.8rem;color:var(--accent-ink);white-space:nowrap}
+.cnote{font-size:.87rem;color:var(--muted);flex:1}
+.sets{display:flex;gap:6px}
+.set{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:8px 0;font-family:var(--f-mono);font-size:.78rem;cursor:pointer}
+.set[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500}
+.reset{align-self:flex-start;background:none;border:1px solid var(--line);border-radius:6px;padding:6px 12px;font-size:.8rem;color:var(--muted);cursor:pointer}
+
+/* content pages */
+.sec{display:flex;flex-direction:column;gap:12px}
+.sec-head{display:flex;flex-direction:column;gap:4px;border-top:3px solid var(--ink);padding-top:10px}
+.targets{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.t{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.t .v{font-family:var(--f-mono);font-size:1.25rem;font-weight:500}
+.t .k{font-size:.78rem;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:700px){.two{grid-template-columns:1fr}}
+.callout{border-left:4px solid var(--accent);background:var(--accent-soft);padding:12px 14px;border-radius:0 8px 8px 0}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{text-align:left;padding:8px 12px;border-top:1px solid var(--line);vertical-align:top}
+thead th{border-top:0;font-family:var(--f-mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:500}
+td.n,th.n{text-align:right;white-space:nowrap;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+td small{display:block;color:var(--muted);font-size:.8rem}
+tr.meal td{background:var(--bg);font-family:var(--f-mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-block:6px}
+tr.total td{font-weight:700;border-top:2px solid var(--ink)}
+.rules{display:grid;gap:8px}
+.rule{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:4px}
+.rule .if{font-weight:600}
+.rule .if::before{content:"IF  ";font-family:var(--f-mono);font-size:.7rem;color:var(--muted);font-weight:400}
+.rule .then::before{content:"THEN  ";font-family:var(--f-mono);font-size:.7rem;color:var(--accent-ink)}
+.rung{display:grid;grid-template-columns:8.5rem 1fr;gap:4px 12px;padding:9px 0;border-top:1px solid var(--line)}
+.rung:first-of-type{border-top:0}
+.rung b{font-family:var(--f-mono);font-size:.8rem;font-weight:500}
+.rung div{font-size:.9rem;min-width:0}
+@media (max-width:520px){.rung{grid-template-columns:1fr}}
+.fix{display:grid;grid-template-columns:5.6rem 1fr;gap:4px 12px;padding:12px 14px;border-top:1px solid var(--line)}
+.fix:first-child{border-top:0}
+.fix div{min-width:0}
+.tag{font-family:var(--f-mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:3px;justify-self:start;align-self:start}
+.tag.wrong{background:var(--warn-soft);color:var(--warn)}
+.tag.weak{background:var(--accent-soft);color:var(--accent-ink)}
+.tag.missing{background:var(--good-soft);color:var(--good)}
+.fixes{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+@media (max-width:520px){.fix{grid-template-columns:1fr}}
+footer{font-size:.78rem;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="appbar"><div class="appbar-in">
+  <span class="brand">Cut <b>Plan</b></span>
+  <span class="today" id="todayLabel"></span>
+</div></header>
+
+<main>
+
+<!-- TRAIN -->
+<section class="view" id="v-train" aria-label="Training">
+  <div class="days" id="dayBtns" role="group" aria-label="Choose workout"></div>
+  <div id="restBanner" class="banner" hidden></div>
+  <div class="dayhead">
+    <div><span class="eyebrow" id="dayEyebrow"></span><h2 id="dayTitle"></h2></div>
+    <div class="progress"><span id="progText">0 / 0 sets</span><span class="bar"><i id="progBar"></i></span></div>
+  </div>
+  <details class="guide">
+    <summary>How hard, warm-up, rest times</summary>
+    <div class="gbody">
+      <div><ul>
+        <li><b>Weeks 1–2:</b> 2 sets per exercise, stop with about 3 reps left.</li>
+        <li><b>Week 3 on:</b> 3 sets, stop 1–2 reps short of failure. Curls, raises, triceps and push-ups can go to failure on the last set.</li>
+        <li><b>Never to failure:</b> split squats, single-leg RDLs, pull-up negatives.</li>
+        <li>Rest 60–90 s on small moves, 2 min on squats, rows and push-ups.</li>
+      </ul></div>
+      <div><ul>
+        <li>Arm circles and band pull-aparts, 20 each</li>
+        <li>Bodyweight squats to a bench, 15</li>
+        <li>Hip hinges, 10</li>
+        <li>One light set of the first exercise</li>
+        <li>Tap a set button when you finish it. Ticks reset each day.</li>
+      </ul></div>
+    </div>
+  </details>
+  <div class="cards" id="cards"></div>
+  <button class="reset" id="resetBtn" type="button">Clear today's ticks for this workout</button>
+</section>
+
+<!-- DIET -->
+<section class="view" id="v-diet" aria-label="Diet" hidden>
+  <div class="sec">
+    <div class="sec-head"><span class="eyebrow">Daily numbers</span><h2>Targets</h2></div>
+    <div class="targets">
+      <div class="t"><span class="v">2,200</span><span class="k">kcal per day to start</span></div>
+      <div class="t"><span class="v">160 g</span><span class="k">protein; 140 g floor</span></div>
+      <div class="t"><span class="v">55–65 g</span><span class="k">fat</span></div>
+      <div class="t"><span class="v">~250 g</span><span class="k">carbs, the remainder</span></div>
+      <div class="t"><span class="v">10k → 12k</span><span class="k">steps by week 3 → week 6</span></div>
+      <div class="t"><span class="v">7.5 h</span><span class="k">sleep</span></div>
+    </div>
+    <p class="muted">Weigh rice, chapati, chicken and oil for the first 3 weeks. Food values are rounded table figures; prices are estimates.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="eyebrow">~₹220–240</span><h2>Day A · chicken</h2></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Food</th><th class="n">kcal</th><th class="n">Protein</th></tr></thead>
+      <tbody>
+        <tr class="meal"><td colspan="3">Breakfast, after the gym</td></tr>
+        <tr><td>Omelette, 1 tsp oil<small>3 whole eggs + 3 whites</small></td><td class="n">310</td><td class="n">30 g</td></tr>
+        <tr><td>Idli + sambar<small>3 idli, 1 cup sambar</small></td><td class="n">280</td><td class="n">11 g</td></tr>
+        <tr class="meal"><td colspan="3">Lunch</td></tr>
+        <tr><td>Cooked rice<small>150 g, weighed</small></td><td class="n">195</td><td class="n">4 g</td></tr>
+        <tr><td>Chicken curry, 1 tsp oil<small>150 g raw boneless (~200 g curry cut)</small></td><td class="n">250</td><td class="n">32 g</td></tr>
+        <tr><td>Dal or sambar<small>1 cup</small></td><td class="n">140</td><td class="n">9 g</td></tr>
+        <tr><td>Poriyal, 1 tsp oil<small>1 cup vegetables</small></td><td class="n">90</td><td class="n">2 g</td></tr>
+        <tr><td>Curd<small>100 g</small></td><td class="n">60</td><td class="n">4 g</td></tr>
+        <tr class="meal"><td colspan="3">Evening</td></tr>
+        <tr><td>Soya chunk stir-fry, 1 tsp oil<small>50 g dry</small></td><td class="n">240</td><td class="n">27 g</td></tr>
+        <tr><td>Tea or filter coffee<small>no sugar</small></td><td class="n">30</td><td class="n">1 g</td></tr>
+        <tr class="meal"><td colspan="3">Dinner</td></tr>
+        <tr><td>Chapati, no ghee<small>2 medium</small></td><td class="n">240</td><td class="n">7 g</td></tr>
+        <tr><td>Chicken, 1 tsp oil<small>150 g raw boneless</small></td><td class="n">250</td><td class="n">32 g</td></tr>
+        <tr><td>Salad<small>cucumber, carrot, onion</small></td><td class="n">30</td><td class="n">1 g</td></tr>
+        <tr class="meal"><td colspan="3">Before bed</td></tr>
+        <tr><td>Toned milk<small>250 ml</small></td><td class="n">145</td><td class="n">8 g</td></tr>
+        <tr class="total"><td>Total</td><td class="n">2,260</td><td class="n">168 g</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="eyebrow">~₹170–190</span><h2>Day B · budget</h2></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Meal · change from Day A</th><th class="n">kcal</th><th class="n">Protein</th></tr></thead>
+      <tbody>
+        <tr><td>Breakfast<small>Same</small></td><td class="n">590</td><td class="n">41 g</td></tr>
+        <tr><td>Lunch<small>60 g dry soya chunk curry instead of chicken</small></td><td class="n">730</td><td class="n">50 g</td></tr>
+        <tr><td>Evening<small>2 boiled eggs + tea, no sugar</small></td><td class="n">175</td><td class="n">14 g</td></tr>
+        <tr><td>Dinner<small>2 chapati + 100 g paneer bhurji + salad</small></td><td class="n">575</td><td class="n">26 g</td></tr>
+        <tr><td>Before bed<small>Toned milk 250 ml</small></td><td class="n">145</td><td class="n">8 g</td></tr>
+        <tr class="total"><td>Total</td><td class="n">2,215</td><td class="n">139 g</td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted">Day B sits at the 140 g floor. Add 20 g more dry soya at lunch for +10 g protein and +70 kcal.</p>
+  </div>
+
+  <div class="two">
+    <div class="panel">
+      <h3>Cost of 25 g protein</h3>
+      <div class="tbl" style="border:0"><table>
+        <thead><tr><th>Source</th><th class="n">≈ ₹</th><th class="n">kcal</th></tr></thead>
+        <tbody>
+          <tr><td>Soya chunks, 48 g dry</td><td class="n">10–12</td><td class="n">165</td></tr>
+          <tr><td>Dal, 110 g dry</td><td class="n">17</td><td class="n">380</td></tr>
+          <tr><td>Eggs, 4</td><td class="n">25–28</td><td class="n">290</td></tr>
+          <tr><td>Sardine / mackerel, 130 g</td><td class="n">25–40</td><td class="n">200</td></tr>
+          <tr><td>Chicken, 110 g boneless</td><td class="n">35–45</td><td class="n">135</td></tr>
+          <tr><td>Toned milk, 800 ml</td><td class="n">45</td><td class="n">465</td></tr>
+          <tr><td>Paneer, 140 g</td><td class="n">60</td><td class="n">370</td></tr>
+          <tr><td>Whey, 1 scoop</td><td class="n">60–90</td><td class="n">125</td></tr>
+        </tbody>
+      </table></div>
+      <p class="muted">Soya is cheapest in money and calories. Dal, milk and paneer carry many calories with their protein, so count them as food. Soy at these amounts doesn't lower testosterone in men.</p>
+    </div>
+    <div class="panel">
+      <h3>Where calories leak</h3>
+      <ul>
+        <li><b>Sugar in coffee/tea:</b> 60–90 kcal a cup.</li>
+        <li><b>Coconut chutney:</b> 2 tbsp ≈ 80–100 kcal. Use sambar, tomato or mint chutney.</li>
+        <li><b>Ghee roast / oil dosa:</b> +100–150 kcal over plain.</li>
+        <li><b>Cooking oil:</b> 1 tbsp = 120 kcal. Measure with a spoon.</li>
+        <li><b>Unlimited rice meals:</b> each refill 200–300 kcal.</li>
+        <li><b>Parotta</b> 250–300, <b>vada</b> 150–200, <b>biryani</b> 800–1,200.</li>
+        <li><b>Groundnuts:</b> 30 g = 170 kcal.</li>
+      </ul>
+      <p><b>Eating out:</b> one plate, protein first, no refills, back on plan at the next meal.</p>
+    </div>
+  </div>
+</section>
+
+<!-- RULES -->
+<section class="view" id="v-rules" aria-label="Rules" hidden>
+  <div class="sec">
+    <div class="sec-head"><span class="eyebrow">Every Sunday, 5 minutes</span><h2>Weekly rules</h2></div>
+    <p>Weigh Mon, Wed, Fri after the toilet, before food. Compare weekly <b>averages</b>, never single weigh-ins.</p>
+    <div class="rules">
+      <div class="rule"><span class="if">Weeks 1–2</span><span class="then">Ignore the scale. The first 2–3 kg are water and stored carbs.</span></div>
+      <div class="rule"><span class="if">Losing 0.5–1% of body weight a week</span><span class="then">Change nothing.</span></div>
+      <div class="rule"><span class="if">Under 0.5% a week for 2 weeks, waist not shrinking</span><span class="then">Check portions, oil, coffee sugar, weekends first. If those were on plan, remove 150–200 kcal (half a cup of rice) or add 2,000 steps. One change at a time.</span></div>
+      <div class="rule"><span class="if">Scale flat, waist down, reps up</span><span class="then">You're losing fat and gaining muscle. Wait 2 more weeks.</span></div>
+      <div class="rule"><span class="if">Over 1.2% a week after week 4, or reps dropping for 2 weeks</span><span class="then">Add 150–200 kcal of rice or chapati around training.</span></div>
+      <div class="rule"><span class="if">Every 10–12 weeks</span><span class="then">1–2 weeks at maintenance (+600 kcal, mostly carbs). Keep training. Expect +1–2 kg of water.</span></div>
+      <div class="rule"><span class="if">Sleeping under 6.5 h most nights</span><span class="then">Fix sleep before cutting calories again. Short sleep makes more of the weight you lose come from muscle.</span></div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-head"><span class="eyebrow">Make it harder</span><h2>Progression</h2></div>
+    <div class="panel">
+      <p>When every set hits the top of its rep range with 1–2 reps left, move one step right next session and restart at the bottom of the range. Past about 30 reps a set stops working the muscle well, so move up a step.</p>
+      <div>
+        <div class="rung"><b>Push-up</b><div>hands on bench → floor → hands on bricks → feet on bench → +5 kg backpack → +10 kg</div></div>
+        <div class="rung"><b>Vertical pull</b><div>5 s negatives → band-assisted → 1 rep + negatives → sets of 3–5 → sets of 8+</div></div>
+        <div class="rung"><b>Inverted row</b><div>bar at chest height → waist → hip → feet on bench → backpack on chest</div></div>
+        <div class="rung"><b>Split squat</b><div>bodyweight → hold 8 kg → backpack + 8 kg → front foot on a plate</div></div>
+        <div class="rung"><b>RDL / hip thrust</b><div>8 kg → backpack → backpack + 8 kg → add pauses</div></div>
+        <div class="rung"><b>8 kg isolation</b><div>12–25 → 25–30 → 2 s pause → add a band</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Buy in this order</h3>
+      <ol>
+        <li>Resistance band set, about ₹800–1,500</li>
+        <li>A backpack with books, bottles or sand: free</li>
+        <li>Digital kitchen scale, about ₹300–500</li>
+        <li>Optional: adjustable dumbbells, 20 kg+</li>
+      </ol>
+      <p class="muted">Deload every 8 weeks: half the sets for one week, timed with the diet break.</p>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-head"><span class="eyebrow">Measure</span><h2>Tracking</h2></div>
+    <div class="panel"><ul>
+      <li><b>Weight</b> 3× a week → weekly average</li>
+      <li><b>Waist</b> at the navel every 2 weeks, relaxed, after a normal breath out</li>
+      <li><b>Photos</b> every 2 weeks: same spot, light, pose, time</li>
+      <li><b>Steps</b> daily; <b>sets and reps</b> every session; <b>sleep</b> hours</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- PLAN -->
+<section class="view" id="v-plan" aria-label="Plan" hidden>
+  <div class="sec">
+    <div class="sec-head"><span class="eyebrow">Realistic</span><h2>Timeline</h2></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Week</th><th class="n">kg</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">0</td><td class="n">113</td><td>Start</td></tr>
+        <tr><td class="mono">4</td><td class="n">108–109</td><td>Includes 2–3 kg of water</td></tr>
+        <tr><td class="mono">12</td><td class="n">101–103</td><td>Waist down 6–8 cm. Recheck calories.</td></tr>
+        <tr><td class="mono">13–14</td><td class="n">+1–2</td><td>Maintenance break + deload</td></tr>
+        <tr><td class="mono">26</td><td class="n">92–96</td><td>Around your previous best</td></tr>
+        <tr><td class="mono">27–28</td><td class="n">+1–2</td><td>Second break</td></tr>
+        <tr><td class="mono">40</td><td class="n">85–89</td><td>Decide end weight from waist and photos</td></tr>
+        <tr><td class="mono">50–56</td><td class="n">~80–84</td><td>Only if still needed</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><p><b>80 kg is a guess.</b> With your muscle you may look lean at 84–88 kg. Waist is the real target: under 90 cm is the health line, and a lean look at 180 cm usually lands in the low-to-mid 80s cm.</p></div>
+  </div>
+  <div class="sec">
+    <div class="sec-head"><span class="eyebrow">Health</span><h2>Checks and supplements</h2></div>
+    <div class="two">
+      <div class="panel">
+        <h3>Blood test once now, again at week 26</h3>
+        <ul><li>HbA1c and fasting glucose</li><li>Lipid profile</li><li>Liver enzymes (ALT/SGPT)</li><li>TSH</li><li>Vitamin D and B12</li></ul>
+        <p class="muted">About ₹1,000–2,000 in Chennai. Loud snoring or daytime sleepiness is worth telling a doctor about.</p>
+      </div>
+      <div class="panel">
+        <h3>Worth the money</h3>
+        <ul>
+          <li><b>Creatine monohydrate</b> 3–5 g daily. Adds 1–2 kg of water at first.</li>
+          <li><b>Vitamin D</b> only if your test shows it's low.</li>
+          <li><b>Whey</b> only on days food doesn't reach 140 g.</li>
+          <li><b>Skip:</b> fat burners, BCAAs.</li>
+        </ul>
+        <p class="muted">Drink 3+ litres a day in Chennai heat and don't cut salt to zero.</p>
+      </div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-head"><span class="eyebrow">Because it happened before</span><h2>Regain plan</h2></div>
+    <div class="two">
+      <div class="panel">
+        <h3>Minimum week</h3>
+        <ul>
+          <li>2 home sessions, 25 min: push-ups, backpack split squats, band rows, hip thrusts</li>
+          <li>8,000 steps a day</li>
+          <li>140 g protein</li>
+          <li>Weigh 3× a week. Never stop weighing.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Restart trigger</h3>
+        <p>Weekly average 2 kg above your lowest → back to weighing food and the full program the next day.</p>
+        <p>After the goal, hold maintenance for 3+ months.</p>
+      </div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-head"><span class="eyebrow">Why v2 changed things</span><h2>Review</h2></div>
+    <div class="fixes">
+      <div class="fix"><span class="tag wrong">Wrong</span><div><b>Timeline.</b> 33 kg at 0.6–0.9 kg/week is 9–13 months, not 7–9.</div></div>
+      <div class="fix"><span class="tag wrong">Wrong</span><div><b>200 g protein.</b> The old menu gave 130–150 g, and ~160 g is enough.</div></div>
+      <div class="fix"><span class="tag wrong">Wrong</span><div><b>Slow negatives as the fix.</b> Closeness to failure drives growth with light weights. Lower for 2–3 s.</div></div>
+      <div class="fix"><span class="tag weak">Weak</span><div><b>8 kg rows, bench dips, front raises, 27-set upper days.</b> Replaced with bodyweight rows, overhead extensions, rear-delt work, ~20 sets.</div></div>
+      <div class="fix"><span class="tag missing">Missing</span><div><b>Leg curls, extra load, stall rules, breaks, blood work, regain plan.</b> All added.</div></div>
+    </div>
+  </div>
+  <footer>Numbers are estimates from standard food tables and typical Chennai prices; your own scale and tape data overrides them after week 3. Training and nutrition guidance, not medical advice.</footer>
+</section>
+
+</main>
+
+<nav class="tabbar" aria-label="Sections"><div class="tabbar-in" role="tablist">
+  <button class="tab" role="tab" data-view="train" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>Train</button>
+  <button class="tab" role="tab" data-view="diet" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3 12h18a9 9 0 0 1-18 0zM8 8c0-2 2-2 2-4M13 8c0-2 2-2 2-4"/></svg>Diet</button>
+  <button class="tab" role="tab" data-view="rules" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Rules</button>
+  <button class="tab" role="tab" data-view="plan" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3 20l5-14 4 9 3-5 6 10z"/></svg>Plan</button>
+</div></nav>
+
+<script>
+/* ---------- workout data ---------- */
+const DAYS = [
+ {id:'u1', name:'Upper 1', dow:'Mon', meta:'~20 sets · 50 min', ex:[
+  {n:'Push-up (your ladder level)', s:'3 × 8–20', a:'pushup', note:'Hardest variation you can do 8+ clean reps of. Body in one straight line, lower for 2–3 s.'},
+  {n:'Pull-up negative', s:'3 × 4–6', a:'pullneg', note:'Step up to the top, lower over 4–5 s. Stop when you can no longer control the descent.'},
+  {n:'Inverted row', s:'3 × 8–20', a:'invrow', note:'Heels down, body straight, pull chest to bar, squeeze 1 s. No bar: 8 kg one-arm row with a 2 s hold.'},
+  {n:'Seated one-arm 8 kg press', s:'3 × 15–30', a:'press', note:'Press straight up, lower slowly. Take it close to failure.'},
+  {n:'8 kg lateral raise', s:'3 × 12–25', a:'lateral', note:'Lead with the elbows, stop at shoulder height, no swinging.'},
+  {n:'8 kg DB curl', s:'3 × 12–25', a:'curl', note:'Elbows pinned to your sides, full stretch at the bottom.'},
+  {n:'Overhead triceps extension', s:'3 × 12–25', a:'ohext', note:'8 kg in both hands. Lower deep behind the head, extend fully.'}
+ ]},
+ {id:'l1', name:'Lower 1', dow:'Tue', meta:'~15 sets · 45 min', ex:[
+  {n:'Bulgarian split squat', s:'3 × 8–15 / leg', a:'bss', note:'Rear foot on the bench, 3 s down. Hold the 8 kg once 15 reps feel easy.'},
+  {n:'Single-leg RDL, hand on rail', s:'3 × 10–15 / leg', a:'slrdl', note:'Hips back, soft knee, back flat. The rail takes balance out of it.'},
+  {n:'Walking lunge', s:'2 × 12–20 / leg', a:'lunge', note:'Long step, back knee close to the floor, push through the front heel.'},
+  {n:'Sliding leg curl', s:'3 × 6–15', a:'legcurl', note:'Heels on a towel on smooth floor, hips up. Lowering-only if full reps are too hard.'},
+  {n:'Single-leg calf raise on a step', s:'3 × 12–20 / leg', a:'calf1', note:'Heel hangs off the step. 2 s pause at the bottom stretch.'},
+  {n:'Dead bug', s:'2 × 8–12 / side', a:'deadbug', note:'Lower back pressed into the floor. Opposite arm and leg reach out together.'}
+ ]},
+ {id:'u2', name:'Upper 2', dow:'Thu', meta:'~18 sets · 45 min', ex:[
+  {n:'Close-grip push-up', s:'3 × 8–20', a:'pushup', note:'Hands under the shoulders, elbows tucked to the ribs.'},
+  {n:'Underhand inverted row', s:'3 × 8–20', a:'invrow', note:'Palms facing you. More biceps and lower lats.'},
+  {n:'Band-assisted pull-up', s:'3 × 6–12', a:'bandpull', note:'Loop a band over the bar and under one knee. No band yet: do negatives.'},
+  {n:'Seated one-arm 8 kg press', s:'3 × 15–30', a:'press', note:'Same as Upper 1.'},
+  {n:'Rear-delt fly, chest on bench', s:'3 × 15–25', a:'reardelt', note:'Chest on an incline bench, arms out wide like wings. Small weight, slow.'},
+  {n:'8 kg hammer curl', s:'3 × 12–25', a:'curl', note:'Thumbs up grip. Last set to failure.'}
+ ]},
+ {id:'l2', name:'Lower 2', dow:'Fri', meta:'~16 sets · 45 min', ex:[
+  {n:'Single-leg hip thrust', s:'3 × 10–20 / leg', a:'hipthrust', note:'Upper back on the bench, drive through the heel, 1 s squeeze at the top.'},
+  {n:'Deficit reverse lunge', s:'3 × 8–15 / leg', a:'dlunge', note:'Stand on a low step, step back and down. Easier on the knees.'},
+  {n:'Single-leg RDL with pause', s:'3 × 10–15 / leg', a:'slrdlP', note:'2 s pause at the bottom, hand on a rail.'},
+  {n:'Heels-up goblet squat, 1.5 reps', s:'2 × 12–20', a:'goblet', note:'Heels on a plate. Down, halfway up, down, all the way up = 1 rep.'},
+  {n:'Sliding leg curl', s:'2 × 6–15', a:'legcurl', note:'As in Lower 1.'},
+  {n:'Calf raise, both legs', s:'3 × 15–25', a:'calf2', note:'Hold the 8 kg, pause at the bottom.'}
+ ]}
+];
+
+/* ---------- figure rig ---------- */
+const R = Math.PI/180;
+const dir = a => [Math.cos(a*R), Math.sin(a*R)];
+const add = (p,q) => [p[0]+q[0], p[1]+q[1]];
+const mul = (p,k) => [p[0]*k, p[1]*k];
+const lerp = (a,b,t) => a+(b-a)*t;
+const lerpP = (p,q,t) => [lerp(p[0],q[0],t), lerp(p[1],q[1],t)];
+const lerpA = (a,b,t) => { let d=((b-a)%360+540)%360-180; return a+d*t; };
+const ease = t => t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+
+function limb(root, sp, l1, l2){
+  if (sp.a){ const j=add(root,mul(dir(sp.a[0]),l1)); return {j, e:add(j,mul(dir(sp.a[1]),l2)), a2:sp.a[1]}; }
+  if (sp.e){ return {j:sp.j, e:sp.e, a2:Math.atan2(sp.e[1]-sp.j[1], sp.e[0]-sp.j[0])/R}; }
+  const T=sp.ik, dx=T[0]-root[0], dy=T[1]-root[1];
+  let d=Math.hypot(dx,dy); const base=Math.atan2(dy,dx);
+  d=Math.min(Math.max(d,Math.abs(l1-l2)+.01), l1+l2-.01);
+  const c=(l1*l1+d*d-l2*l2)/(2*l1*d), al=Math.acos(Math.max(-1,Math.min(1,c)));
+  const ja=base+sp.s*al, j=[root[0]+l1*Math.cos(ja), root[1]+l1*Math.sin(ja)];
+  const a2=Math.atan2(T[1]-j[1], T[0]-j[0]);
+  return {j, e:[j[0]+l2*Math.cos(a2), j[1]+l2*Math.sin(a2)], a2:a2/R};
+}
+function lerpLimb(A,B,t){
+  const o={};
+  if (A.a) o.a=[lerpA(A.a[0],B.a[0],t), lerpA(A.a[1],B.a[1],t)];
+  else if (A.e){ o.j=lerpP(A.j,B.j,t); o.e=lerpP(A.e,B.e,t); }
+  else { o.ik=lerpP(A.ik,B.ik,t); o.s=A.s; }
+  if (A.f!=null || B.f!=null) o.f=lerpA(A.f ?? B.f, B.f ?? A.f, t);
+  return o;
+}
+function lerpPose(A,B,t){
+  return {h:lerpP(A.h,B.h,t), t:lerpA(A.t,B.t,t), ht:(A.ht!=null)?lerpA(A.ht,B.ht ?? A.ht,t):undefined,
+    an:lerpLimb(A.an,B.an,t), af:lerpLimb(A.af,B.af,t), ln:lerpLimb(A.ln,B.ln,t), lf:lerpLimb(A.lf,B.lf,t)};
+}
+
+/* ---------- poses ---------- */
+const P = (h,t,an,af,ln,lf,ht) => ({h,t,an,af,ln,lf,ht});
+const A = (a,b) => ({a:[a,b]});
+const K = (x,y,s,f) => ({ik:[x,y], s, f});
+const J = (jx,jy,ex,ey) => ({j:[jx,jy], e:[ex,ey]});
+const STAND_L = [K(152,172,-1), K(146,172,-1)];
+const SEAT_L = [K(182,172,-1), K(176,172,-1)];
+const BENCH_SEAT = {type:'bench', x:105, y:134, w:70};
+const k = (p,hold,move) => ({p,hold,move});
+
+const pullTop = P([137,93],-100, K(150,24,1), K(147,24,1), A(100,160), A(95,155));
+const pullHang = P([146,134],-90, K(150,24,1), K(147,24,1), A(100,160), A(95,155));
+const rdlTop = P([150,90],-90, A(90,90), K(190,80,1), K(152,172,-1), A(95,95));
+const rdlBot = P([132,96],-4, A(90,90), K(190,125,1), K(152,172,-1), A(176,178));
+const lungeStand = P([120,90],-90, A(90,90), A(90,90), K(122,172,-1), K(116,172,-1));
+const lungeMid = P([127,92],-90, A(85,92), A(95,88), K(165,160,-1), K(116,172,-1));
+const lungeBot = P([135,135],-88, A(90,90), A(90,90), K(185,172,-1), K(80,168,-1,15));
+const dlStand = P([160,72],-90, A(90,90), A(90,90), K(162,154,-1), K(156,154,-1));
+const dlMid = P([155,80],-90, A(92,90), A(88,90), K(162,154,-1), K(110,150,-1,30));
+const dlBot = P([140,128],-86, A(90,90), A(90,90), K(162,154,-1), K(92,170,-1,15));
+const dbStart = P([128,170],0, A(-90,-90), A(-88,-90), A(-90,180), A(-92,182), -7);
+dbStart.ln.f=-90; dbStart.lf.f=-90;
+const dbA = P([128,170],0, A(-15,-5), A(-88,-90), {a:[-90,180],f:-90}, {a:[178,178],f:-90}, -7);
+const dbB = P([128,170],0, A(-90,-90), A(-15,-5), {a:[178,178],f:-90}, {a:[-92,182],f:-90}, -7);
+const gTop = P([150,84],-88, J(160,58,166,40), J(156,58,162,40), K(152,165,-1,35), K(146,165,-1,35));
+const gBot = P([128,140],-70, J(155,116,161,96), J(151,116,157,96), K(152,165,-1,35), K(146,165,-1,35));
+const gHalf = P([139,113],-80, J(158,88,164,68), J(154,88,160,68), K(152,165,-1,35), K(146,165,-1,35));
+
+const ANIM = {
+ pushup:{ox:48, props:[], keys:[
+   k(P([114,140],-27, K(160,172,1), K(156,172,1), K(36,164,1,75), K(32,166,1,75)), 300, 1600),
+   k(P([122,160],-8, K(160,172,1), K(156,172,1), K(36,164,1,75), K(32,166,1,75)), 150, 800)]},
+ pullneg:{ox:10, noFloor:true, props:[{type:'bar',x:150,y:22,mount:'up'}], keys:[
+   k(pullTop, 500, 3000), k(pullHang, 400, 700)]},
+ bandpull:{ox:10, noFloor:true, props:[{type:'bar',x:150,y:22,mount:'up'},{type:'band',from:[150,26],to:'kneeN'}], keys:[
+   k(pullHang, 300, 1000), k(pullTop, 300, 1800)]},
+ invrow:{ox:38, UA:24, props:[{type:'bar',x:151,y:94,mount:'down'}], keys:[
+   k(P([120.2,153],-12, K(151,94,-1), K(148,94,-1), K(40,170,1,-100), K(37,170,1,-100)), 200, 900),
+   k(P([111,129],-30, K(151,94,-1), K(148,94,-1), K(40,170,1,-100), K(37,170,1,-100)), 600, 1800)]},
+ press:{ox:8, db:'n', props:[BENCH_SEAT], keys:[
+   k(P([140,130],-90, J(150,98,153,72), J(134,104,156,122), ...SEAT_L), 200, 900),
+   k(P([140,130],-90, J(144,51,146,22), J(134,104,156,122), ...SEAT_L), 200, 1700)]},
+ lateral:{ox:0, view:'front', db:'both', props:[], keys:[
+   k(P([150,90],-90, A(84,88), A(96,92), K(161,172,1), K(139,172,-1)), 200, 900),
+   k(P([150,90],-90, A(-6,2), A(186,178), K(161,172,1), K(139,172,-1)), 150, 1600)]},
+ reardelt:{ox:0, view:'front', T:30, TH:30, SH:34, db:'both', props:[{type:'pad',x:136,y:64,w:28,h:68},{type:'post',x:150,y:132}], keys:[
+   k(P([150,108],-90, A(88,90), A(92,90), K(161,172,-1), K(139,172,1)), 200, 900),
+   k(P([150,108],-90, A(-10,-2), A(190,182), K(161,172,-1), K(139,172,1)), 200, 1600)]},
+ curl:{ox:-4, db:'both', props:[], keys:[
+   k(P([150,90],-90, A(90,88), A(92,90), ...STAND_L), 200, 800),
+   k(P([150,90],-90, A(86,-72), A(88,-70), ...STAND_L), 200, 1600)]},
+ ohext:{ox:8, db:'n', props:[BENCH_SEAT], keys:[
+   k(P([140,130],-90, A(-84,125), A(-88,128), ...SEAT_L), 200, 900),
+   k(P([140,130],-90, A(-84,-86), A(-88,-88), ...SEAT_L), 200, 1600)]},
+ bss:{ox:40, db:'both', props:[{type:'bench',x:48,y:134,w:52}], keys:[
+   k(P([135,95],-85, A(92,90), A(88,90), K(170,172,-1), K(82,128,-1,170)), 200, 1800),
+   k(P([120,140],-78, A(92,90), A(88,90), K(170,172,-1), K(82,128,-1,170)), 150, 900)]},
+ slrdl:{ox:22, db:'n', props:[{type:'rail',x:190,y:62}], keys:[
+   k(rdlTop, 250, 1800), k(rdlBot, 200, 1000)]},
+ slrdlP:{ox:22, db:'n', props:[{type:'rail',x:190,y:62}], keys:[
+   k(rdlTop, 250, 1800), k(rdlBot, 1500, 1000)]},
+ lunge:{ox:16, props:[], keys:[
+   k(lungeStand, 300, 450), k(lungeMid, 0, 800), k(lungeBot, 150, 700), k(lungeMid, 0, 450)]},
+ dlunge:{ox:10, props:[{type:'box',x:135,y:158,w:72}], keys:[
+   k(dlStand, 300, 450), k(dlMid, 0, 900), k(dlBot, 150, 700), k(dlMid, 0, 450)]},
+ legcurl:{ox:30, props:[{type:'towel',at:'ln'},{type:'towel',at:'lf'}], keys:[
+   k(P([110,150],164, A(14,0), A(12,0), K(190,170,-1,-80), K(187,170,-1,-80), 175), 200, 900),
+   k(P([106,140],152.4, A(14,0), A(12,0), K(150,170,-1,-80), K(147,170,-1,-80), 175), 150, 1600)]},
+ calf1:{ox:-22, props:[{type:'box',x:158,y:158,w:80},{type:'rail',x:197,y:40}], keys:[
+   k(P([154,81],-90, A(92,90), K(194,58,1), K(154,163,-1,-25), A(100,150)), 1400, 600),
+   k(P([158,66],-90, A(92,90), K(194,58,1), K(158,148,-1,55), A(100,150)), 300, 1000)]},
+ calf2:{ox:-22, db:'n', props:[{type:'box',x:150,y:158,w:88}], keys:[
+   k(P([154,81],-90, A(90,90), A(92,90), K(154,163,-1,-25), K(151,163,-1,-25)), 900, 600),
+   k(P([158,66],-90, A(90,90), A(92,90), K(158,148,-1,55), K(155,148,-1,55)), 300, 1000)]},
+ deadbug:{ox:8, props:[], keys:[
+   k(dbStart, 300, 1200), k(dbA, 400, 900), k(dbStart, 300, 1200), k(dbB, 400, 900)]},
+ hipthrust:{ox:28, props:[{type:'bench',x:28,y:136,w:58}], keys:[
+   k(P([120,170],-132.6, A(160,170), A(165,172), K(175,172,-1), {a:[-55,-25],f:-110}, -150), 200, 800),
+   k(P([137,132],180, A(160,170), A(165,172), K(175,172,-1), {a:[-30,-20],f:-110}, -150), 900, 1300)]},
+ goblet:{ox:2, db:'n', props:[{type:'plate',x:136,y:169,w:22,h:8}], keys:[
+   k(gTop, 300, 1500), k(gBot, 150, 500), k(gHalf, 0, 500), k(gBot, 100, 900)]}
+};
+for (const a of Object.values(ANIM)){ a.cycle = a.keys.reduce((s,x)=>s+x.hold+x.move,0); }
+
+function poseAt(an, ms){
+  let t = ms % an.cycle;
+  for (let i=0;i<an.keys.length;i++){
+    const cur=an.keys[i], nxt=an.keys[(i+1)%an.keys.length];
+    if (t < cur.hold) return cur.p;
+    t -= cur.hold;
+    if (t < cur.move) return lerpPose(cur.p, nxt.p, ease(t/cur.move));
+    t -= cur.move;
+  }
+  return an.keys[0].p;
+}
+
+/* ---------- drawing ---------- */
+let C = {};
+function readColors(){
+  const s=getComputedStyle(document.documentElement);
+  for (const n of ['fig','fig-far','prop','prop-fill','stage','accent','line']) C[n]=s.getPropertyValue('--'+n).trim();
+}
+function stroke(ctx, pts, w, col, outline){
+  const path=()=>{ ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]); for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]); };
+  if (outline){ path(); ctx.strokeStyle=C.stage; ctx.lineWidth=w+4; ctx.stroke(); }
+  path(); ctx.strokeStyle=col; ctx.lineWidth=w; ctx.stroke();
+}
+function render(ctx, an, pose){
+  const front = an.view==='front', T=an.T||52, UA=an.UA||30, FA=28, TH=an.TH||42, SH=an.SH||40;
+  const H=pose.h, N=add(H, mul(dir(pose.t),T));
+  const head = front ? [N[0], N[1]-16] : add(N, mul(dir(pose.ht ?? pose.t),16));
+  const sN = front ? [N[0]+16,N[1]] : N, sF = front ? [N[0]-16,N[1]] : N;
+  const hN = front ? [H[0]+9,H[1]] : H, hF = front ? [H[0]-9,H[1]] : H;
+  const aN=limb(sN,pose.an,UA,FA), aF=limb(sF,pose.af,UA,FA), lN=limb(hN,pose.ln,TH,SH), lF=limb(hF,pose.lf,TH,SH);
+  const footAng = (sp,l,side) => sp.f!=null ? sp.f : (front ? (side>0?15:165) : l.a2-90);
+  const footLen = front ? 7 : 12;
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  // floor
+  if (!an.noFloor){ ctx.strokeStyle=C.line; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(-60,177.5); ctx.lineTo(360,177.5); ctx.stroke(); }
+  // back props
+  for (const p of an.props){
+    ctx.fillStyle=C['prop-fill']; ctx.strokeStyle=C.prop;
+    if (p.type==='bench'){ ctx.lineWidth=3; stroke(ctx,[[p.x+6,p.y+6],[p.x+6,177]],3,C.prop); stroke(ctx,[[p.x+p.w-6,p.y+6],[p.x+p.w-6,177]],3,C.prop);
+      ctx.fillStyle=C.prop; ctx.beginPath(); ctx.roundRect(p.x,p.y,p.w,7,3); ctx.fill(); }
+    if (p.type==='box' || p.type==='plate'){ const h=p.h||(177-p.y); ctx.beginPath(); ctx.roundRect(p.x,p.y,p.w,h,2); ctx.fill(); ctx.lineWidth=1.5; ctx.stroke(); }
+    if (p.type==='rail'){ stroke(ctx,[[p.x,p.y],[p.x,177]],4,C.prop); }
+    if (p.type==='pad'){ ctx.fillStyle=C.prop; ctx.beginPath(); ctx.roundRect(p.x,p.y,p.w,p.h,5); ctx.fill(); }
+    if (p.type==='post'){ stroke(ctx,[[p.x,p.y],[p.x,177]],4,C.prop); stroke(ctx,[[p.x-22,177],[p.x+22,177]],4,C.prop); }
+    if (p.type==='bar'){ stroke(ctx,[[p.x,p.y],[p.x, p.mount==='up'?-30:177]],3,C.prop); }
+  }
+  // far limbs
+  const ff=footAng(pose.lf,lF,-1), fn=footAng(pose.ln,lN,1);
+  stroke(ctx,[sF, aF.j, aF.e],6.5,C['fig-far']);
+  stroke(ctx,[hF, lF.j, lF.e],7,C['fig-far']);
+  stroke(ctx,[lF.e, add(lF.e, mul(dir(ff),footLen))],6,C['fig-far']);
+  // torso + head
+  stroke(ctx,[H,N],10,C.fig);
+  if (front){ stroke(ctx,[[N[0]-16,N[1]],[N[0]+16,N[1]]],8,C.fig); stroke(ctx,[[H[0]-9,H[1]],[H[0]+9,H[1]]],8,C.fig); }
+  ctx.fillStyle=C.fig; ctx.beginPath(); ctx.arc(head[0],head[1],10,0,Math.PI*2); ctx.fill();
+  // near leg + arm
+  stroke(ctx,[hN, lN.j, lN.e],7,C.fig,!front);
+  stroke(ctx,[lN.e, add(lN.e, mul(dir(fn),footLen))],6,C.fig);
+  // front props
+  for (const p of an.props){
+    if (p.type==='bar'){ ctx.fillStyle=C.prop; ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fill(); }
+    if (p.type==='band'){ ctx.strokeStyle=C.accent; ctx.globalAlpha=.55; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(p.from[0],p.from[1]); ctx.lineTo(lN.j[0],lN.j[1]+4); ctx.stroke(); ctx.globalAlpha=1; }
+    if (p.type==='towel'){ const e=(p.at==='ln'?lN:lF).e; ctx.fillStyle=C.accent; ctx.globalAlpha=p.at==='ln'?.8:.4; ctx.beginPath(); ctx.roundRect(e[0]-9,e[1]+3,20,5,2); ctx.fill(); ctx.globalAlpha=1; }
+  }
+  stroke(ctx,[sN, aN.j, aN.e],6.5,C.fig,true);
+  // dumbbells
+  const dbs = an.db==='both' ? [aF.e,aN.e] : an.db==='n' ? [aN.e] : [];
+  for (const d of dbs){ ctx.fillStyle=C.stage; ctx.beginPath(); ctx.arc(d[0],d[1],8,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=C.accent; ctx.beginPath(); ctx.arc(d[0],d[1],6,0,Math.PI*2); ctx.fill(); }
+}
+
+const live = new Set();
+const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+function sizeCanvas(cv){
+  const r=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+  cv.width=Math.max(1,Math.round(r.width*dpr)); cv.height=Math.max(1,Math.round(r.width*2/3*dpr));
+}
+function drawCanvas(cv, ms){
+  const an=ANIM[cv.dataset.anim]; if (!an) return;
+  const ctx=cv.getContext('2d'); const s=cv.width/300;
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.setTransform(s,0,0,s,(an.ox||0)*s,20*s);
+  const pose = reduced.matches ? an.keys[1].p : poseAt(an, ms + (+cv.dataset.offset||0));
+  render(ctx, an, pose);
+}
+const io = new IntersectionObserver(es => { for (const e of es){ e.isIntersecting ? live.add(e.target) : live.delete(e.target); } }, {rootMargin:'100px'});
+function loop(ms){ if (!document.hidden) for (const cv of live) drawCanvas(cv, ms); requestAnimationFrame(loop); }
+readColors();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{ readColors(); redrawAll(); });
+new MutationObserver(()=>{ readColors(); redrawAll(); }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+function redrawAll(){ document.querySelectorAll('canvas[data-anim]').forEach(cv=>{ sizeCanvas(cv); drawCanvas(cv, performance.now()); }); }
+window.addEventListener('resize', redrawAll);
+requestAnimationFrame(loop);
+
+/* ---------- storage helpers ---------- */
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch(e){} },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
+};
+const now = new Date();
+const dateKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+
+/* ---------- train view ---------- */
+const TODAY = {1:'u1',2:'l1',4:'u2',5:'l2'}[now.getDay()];
+const NEXT = {0:'u1',3:'u2',6:'u1'}[now.getDay()];
+let current = TODAY || NEXT;
+const dayBtns = document.getElementById('dayBtns');
+DAYS.forEach(d=>{
+  const b=document.createElement('button'); b.type='button'; b.className='dbtn'+(d.id===TODAY?' is-today':'');
+  b.dataset.day=d.id; b.innerHTML='<b>'+d.name+'</b><span>'+d.dow+'</span>';
+  b.addEventListener('click',()=>{ current=d.id; renderDay(); });
+  dayBtns.appendChild(b);
+});
+const wd = now.toLocaleDateString('en-IN',{weekday:'short', day:'numeric', month:'short'});
+document.getElementById('todayLabel').textContent = wd + ' · ' + (TODAY ? DAYS.find(d=>d.id===TODAY).name : 'Rest day');
+if (!TODAY){
+  const rb=document.getElementById('restBanner'); rb.hidden=false;
+  rb.innerHTML='<b>Rest day.</b> Walk 10–12k steps, hit your protein, sleep 7.5 h. Next session: '+DAYS.find(d=>d.id===NEXT).name+' ('+DAYS.find(d=>d.id===NEXT).dow+'), shown below.';
+}
+function setKey(dayId,i){ return 'cp:'+dateKey+':'+dayId+':'+i; }
+function renderDay(){
+  const d=DAYS.find(x=>x.id===current);
+  dayBtns.querySelectorAll('.dbtn').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.day===current)));
+  document.getElementById('dayEyebrow').textContent = d.dow + ' · ' + d.meta;
+  document.getElementById('dayTitle').textContent = d.name;
+  const wrap=document.getElementById('cards');
+  live.clear(); io.disconnect(); wrap.innerHTML='';
+  d.ex.forEach((ex,i)=>{
+    const card=document.createElement('article'); card.className='card';
+    const mask=+(store.get(setKey(d.id,i))||0);
+    card.innerHTML =
+      '<div class="stage"><canvas data-anim="'+ex.a+'" data-offset="'+(i*370)+'" role="img" aria-label="Animated demo: '+ex.n+'"></canvas><span class="num">'+String(i+1).padStart(2,'0')+'</span></div>'+
+      '<div class="cbody"><div class="ctop"><span class="cname">'+ex.n+'</span><span class="cspec">'+ex.s+'</span></div>'+
+      '<p class="cnote">'+ex.note+'</p><div class="sets">'+
+      [0,1,2].map(s=>'<button type="button" class="set" data-ex="'+i+'" data-set="'+s+'" aria-pressed="'+Boolean(mask&(1<<s))+'">Set '+(s+1)+'</button>').join('')+
+      '</div></div>';
+    wrap.appendChild(card);
+  });
+  wrap.querySelectorAll('canvas').forEach(cv=>{ sizeCanvas(cv); drawCanvas(cv, performance.now()); io.observe(cv); });
+  updateProgress();
+}
+document.getElementById('cards').addEventListener('click', e=>{
+  const b=e.target.closest('.set'); if (!b) return;
+  const i=+b.dataset.ex, s=+b.dataset.set, key=setKey(current,i);
+  let mask=+(store.get(key)||0); mask^=(1<<s); store.set(key,String(mask));
+  b.setAttribute('aria-pressed', String(Boolean(mask&(1<<s))));
+  updateProgress();
+});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  const d=DAYS.find(x=>x.id===current); d.ex.forEach((_,i)=>store.del(setKey(d.id,i))); renderDay();
+});
+function updateProgress(){
+  const d=DAYS.find(x=>x.id===current); let done=0; const total=d.ex.length*3;
+  d.ex.forEach((_,i)=>{ let m=+(store.get(setKey(d.id,i))||0); while(m){ done+=m&1; m>>=1; } });
+  document.getElementById('progText').textContent = done+' / '+total+' sets';
+  document.getElementById('progBar').style.width = (100*done/total)+'%';
+}
+
+/* ---------- tabs ---------- */
+const tabs=[...document.querySelectorAll('.tab')];
+function show(view){
+  if (!['train','diet','rules','plan'].includes(view)) view='train';
+  tabs.forEach(t=>t.setAttribute('aria-selected', String(t.dataset.view===view)));
+  document.querySelectorAll('.view').forEach(v=>v.hidden = v.id!=='v-'+view);
+  store.set('cp:view',view); window.scrollTo(0,0);
+  if (view==='train') redrawAll();
+}
+tabs.forEach(t=>t.addEventListener('click',()=>show(t.dataset.view)));
+renderDay();
+show((location.hash||'').slice(1) || store.get('cp:view') || 'train');
+
+/* ---------- offline install (only when served over http/https) ---------- */
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/claude\.ai|claudeusercontent/.test(location.hostname)){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>

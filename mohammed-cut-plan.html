@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mohammed's Cut Plan v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one readable column, a logbook feel; sections are rows of a training log, numbers set in mono */
+:root{
+  --bg:#f2f4f6; --surface:#ffffff; --ink:#16202a; --muted:#59666f; --line:#d8dee4;
+  --accent:#d39200; --accent-ink:#875b00; --accent-soft:#fbf0d6;
+  --good:#2e7a4d; --warn:#b4511a; --warn-soft:#fbe7dc; --good-soft:#e1f1e7;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e141a; --surface:#151d25; --ink:#e5eaee; --muted:#95a2ad; --line:#26313b;
+  --accent:#e2a72b; --accent-ink:#f0bf55; --accent-soft:#2b2412;
+  --good:#63c08a; --warn:#ec8c57; --warn-soft:#2e1d14; --good-soft:#132a1d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e141a; --surface:#151d25; --ink:#e5eaee; --muted:#95a2ad; --line:#26313b;
+  --accent:#e2a72b; --accent-ink:#f0bf55; --accent-soft:#2b2412;
+  --good:#63c08a; --warn:#ec8c57; --warn-soft:#2e1d14; --good-soft:#132a1d; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15.5px;line-height:1.6}
+.wrap{max-width:880px;margin:0 auto;padding-inline:18px;padding-block:28px 64px;display:flex;flex-direction:column;gap:44px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.1;margin:0;letter-spacing:.01em}
+h1{font-size:clamp(2.3rem,7vw,3.4rem);text-transform:uppercase}
+h2{font-size:1.9rem;text-transform:uppercase}
+h3{font-size:1.35rem}
+p{margin:0;max-width:68ch}
+ul,ol{margin:0;padding-left:1.2em;max-width:68ch}
+li+li{margin-top:.35em}
+.eyebrow{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink)}
+.muted{color:var(--muted)}
+.mono,td.n,.spec{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+section{display:flex;flex-direction:column;gap:16px}
+.sec-head{display:flex;flex-direction:column;gap:6px;border-top:3px solid var(--ink);padding-top:12px}
+header{display:flex;flex-direction:column;gap:14px}
+.facts{display:flex;flex-wrap:wrap;gap:8px 18px;font-family:var(--f-mono);font-size:.85rem;color:var(--muted)}
+.facts b{color:var(--ink);font-weight:500}
+nav{display:flex;flex-wrap:wrap;gap:6px}
+nav a{font-family:var(--f-mono);font-size:.8rem;color:var(--ink);text-decoration:none;border:1px solid var(--line);background:var(--surface);padding:4px 10px;border-radius:4px}
+nav a:hover,nav a:focus-visible{border-color:var(--accent);outline:none}
+
+/* review list */
+.fixes{display:grid;gap:0;border:1px solid var(--line);background:var(--surface);border-radius:6px}
+.fix{display:grid;grid-template-columns:7.5rem 1fr;gap:4px 16px;padding:14px 16px;border-top:1px solid var(--line)}
+.fix:first-child{border-top:0}
+.fix .tag{font-family:var(--f-mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;align-self:start;padding:2px 6px;border-radius:3px;justify-self:start}
+.tag.wrong{background:var(--warn-soft);color:var(--warn)}
+.tag.weak{background:var(--accent-soft);color:var(--accent-ink)}
+.tag.missing{background:var(--good-soft);color:var(--good)}
+.fix div{min-width:0}
+.fix strong{display:block;margin-bottom:2px}
+@media (max-width:560px){.fix{grid-template-columns:1fr}}
+
+/* targets */
+.targets{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.t{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.t .v{font-family:var(--f-mono);font-size:1.35rem;font-weight:500}
+.t .k{font-size:.8rem;color:var(--muted)}
+
+/* training days */
+.week{display:flex;flex-wrap:wrap;gap:6px;font-family:var(--f-mono);font-size:.8rem}
+.week span{border:1px solid var(--line);padding:4px 9px;border-radius:4px;background:var(--surface)}
+.week span.on{border-color:var(--accent);color:var(--accent-ink);font-weight:500}
+.days{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.days{grid-template-columns:1fr}}
+.day{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden;min-width:0}
+.day-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:12px 14px;border-bottom:2px solid var(--accent)}
+.day-h span{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.ex{list-style:none;margin:0;padding:0;max-width:none}
+.ex li{padding:10px 14px;border-top:1px solid var(--line);margin:0;display:grid;grid-template-columns:1.4rem 1fr auto;gap:2px 8px}
+.ex li:first-child{border-top:0}
+.ex .i{font-family:var(--f-mono);font-size:.8rem;color:var(--muted);padding-top:2px}
+.ex .nm{font-weight:600;min-width:0}
+.ex .spec{font-size:.82rem;white-space:nowrap;color:var(--accent-ink);padding-top:2px}
+.ex .note{grid-column:2 / 4;font-size:.86rem;color:var(--muted)}
+
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:520px}
+th,td{text-align:left;padding:8px 12px;border-top:1px solid var(--line);vertical-align:top}
+thead th{border-top:0;font-family:var(--f-mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:500}
+td.n,th.n{text-align:right;white-space:nowrap}
+tr.meal td{background:var(--bg);font-weight:600;font-size:.82rem;font-family:var(--f-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+tr.total td{font-weight:700;border-top:2px solid var(--ink)}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.callout{border-left:4px solid var(--accent);background:var(--accent-soft);padding:12px 14px;border-radius:0 6px 6px 0}
+.callout p{max-width:none}
+
+/* decision rules */
+.rules{display:grid;gap:8px}
+.rule{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 16px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.rule .if{font-weight:600}
+.rule .if::before{content:"IF ";font-family:var(--f-mono);font-size:.72rem;color:var(--muted);font-weight:400}
+.rule .then::before{content:"THEN ";font-family:var(--f-mono);font-size:.72rem;color:var(--accent-ink)}
+@media (max-width:560px){.rule{grid-template-columns:1fr}}
+
+.ladder{display:grid;gap:10px}
+.rung{display:grid;grid-template-columns:9rem 1fr;gap:4px 14px;padding:10px 0;border-top:1px solid var(--line)}
+.rung:first-child{border-top:0}
+.rung b{font-family:var(--f-mono);font-size:.82rem;font-weight:500}
+.rung .steps{font-size:.9rem;min-width:0}
+.rung .steps span{white-space:nowrap}
+@media (max-width:560px){.rung{grid-template-columns:1fr}}
+
+a{color:var(--accent-ink)}
+footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body style="margin:0">
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">Fat-loss plan · version 2 · reviewed 12 Oct 2026</span>
+  <h1>Mohammed's Cut Plan</h1>
+  <div class="facts">
+    <span>Age <b>24</b></span><span>Height <b>180 cm</b></span><span>Start <b>113 kg</b></span><span>Long-term target <b>~80 kg (set by waist)</b></span><span>City <b>Chennai</b></span><span>Kit <b>8 kg DB, bench, bar, bodyweight</b></span>
+  </div>
+  <p>This replaces the 5-month master PDF and both workout guides. The structure you had was sound. Several numbers were wrong, a few exercises were poor choices for a 113 kg body with one 8 kg dumbbell, and the plan had no rules for what to do when progress stalls. Those are fixed below.</p>
+  <nav aria-label="Sections">
+    <a href="#review">Review</a><a href="#targets">Targets</a><a href="#training">Training</a><a href="#progress">Progression</a><a href="#diet">Diet</a><a href="#rules">Weekly rules</a><a href="#timeline">Timeline</a><a href="#health">Health</a><a href="#relapse">Regain plan</a>
+  </nav>
+</header>
+
+<section id="review">
+  <div class="sec-head"><span class="eyebrow">01 · What changed and why</span><h2>Review of the old plan</h2></div>
+  <div class="fixes">
+    <div class="fix"><span class="tag wrong">Wrong</span><div><strong>The timeline math</strong>33 kg at 0.6–0.9 kg/week is 37–55 weeks, so 9–13 months. The old plan said 7–9. With two maintenance breaks, plan on about 12 months to 80 kg.</div></div>
+    <div class="fix"><span class="tag wrong">Wrong</span><div><strong>200 g protein</strong>The old menu reached about 130–150 g, so the target was never being met. It also wasn't needed. Muscle retention in a cut is covered by roughly 2 g per kg of goal body weight, which is about 160 g for you. Chasing 200 g costs about ₹40–60 a day and 150+ kcal you could spend on rice.</div></div>
+    <div class="fix"><span class="tag wrong">Wrong</span><div><strong>"Slow eccentrics make up for light weight"</strong>Muscle grows from high tension on the fibres that only switch on when a set gets hard. With a light load, what makes a set work is finishing close to failure. Tempo between about 1 and 4 seconds makes little difference; 5–6 second negatives add fatigue, not growth. Keep a controlled 2–3 s lowering and judge each set by how many reps you had left.</div></div>
+    <div class="fix"><span class="tag weak">Weak</span><div><strong>No failure for 4 weeks with an 8 kg dumbbell</strong>A set of 8 kg rows stopped far from failure gives your back almost no stimulus. That's a wasted month. Now: 2 easy weeks to manage soreness, then every set ends 1–2 reps short of failure.</div></div>
+    <div class="fix"><span class="tag weak">Weak</span><div><strong>8 kg single-arm row as a main back exercise</strong>That's maybe 20–25% of what your back can row. You'd need 40+ reps per set. Inverted rows and pull-up negatives use your own body weight, which is the heaviest load you have. The DB row is now the fallback only.</div></div>
+    <div class="fix"><span class="tag weak">Weak</span><div><strong>Bench dips at 113 kg</strong>Dips put the shoulder into deep extension under most of your body weight, which is a common way to strain the front of the shoulder. They're replaced by overhead triceps extensions. Training the triceps in a stretched, overhead position produced clearly more growth than pushdowns in a 2023 study (Maeo et al.), and 8 kg is a useful load for it.</div></div>
+    <div class="fix"><span class="tag weak">Weak</span><div><strong>Front raises; 9 exercises per upper day</strong>Front delts already get push-ups and presses. Rear delts were the gap. Upper days had 27 sets in a crowded gym, including two curl variations every session. Now 6–7 exercises and about 20 sets, one curl per day.</div></div>
+    <div class="fix"><span class="tag missing">Missing</span><div><strong>Hamstring curls; loading you can increase</strong>Nothing bent the knee against resistance, so half of the hamstring's job was untrained. Sliding leg curls fix that for free. Extra load (a backpack, a ₹1,000 band set) is used from week 3, not after week 8, because the 8 kg dumbbell runs out quickly.</div></div>
+    <div class="fix"><span class="tag missing">Missing</span><div><strong>Rules for stalls, breaks, blood work and regain</strong>You've lost 19 kg before and regained it after a layoff. The training program wasn't what failed then. This plan adds weekly decision rules, scheduled maintenance breaks, a minimum routine for bad weeks and a trigger to restart.</div></div>
+  </div>
+  <div class="callout"><p><strong>Check your start date.</strong> "10/08/2026" is 10 August in Indian format. If that's right, you're 9 weeks in. If the scale still reads 113 kg after 9 weeks, the exercise program isn't the problem. Portions are. The usual culprits are rice refills, cooking oil, sugar in coffee and coconut chutney.</p></div>
+</section>
+
+<section id="targets">
+  <div class="sec-head"><span class="eyebrow">02 · Daily numbers</span><h2>Targets</h2></div>
+  <div class="targets">
+    <div class="t"><span class="v">2,200</span><span class="k">kcal/day to start (estimated maintenance ~3,000–3,200)</span></div>
+    <div class="t"><span class="v">160 g</span><span class="k">protein; 140 g is the floor</span></div>
+    <div class="t"><span class="v">55–65 g</span><span class="k">fat, mostly from cooking oil, eggs, dairy</span></div>
+    <div class="t"><span class="v">~250 g</span><span class="k">carbs, the remainder; rice and chapati go here</span></div>
+    <div class="t"><span class="v">10k → 12k</span><span class="k">steps: 10k by week 3, 12k by week 6</span></div>
+    <div class="t"><span class="v">7.5 h</span><span class="k">sleep; lights out by 10 pm for a 5:30 alarm</span></div>
+  </div>
+  <p class="muted">Calories are estimates from your size and activity. Your scale trend after weeks 3–5 is the real measurement, and the weekly rules adjust from there.</p>
+</section>
+
+<section id="training">
+  <div class="sec-head"><span class="eyebrow">03 · Upper / lower, 4 days</span><h2>Training</h2></div>
+  <div class="week" aria-label="Weekly schedule">
+    <span class="on">Mon · Upper 1</span><span class="on">Tue · Lower 1</span><span>Wed · Rest + walk</span><span class="on">Thu · Upper 2</span><span class="on">Fri · Lower 2</span><span>Sat · Rest + walk</span><span>Sun · Rest</span>
+  </div>
+  <div class="two">
+    <div class="panel">
+      <h3>How hard each set should be</h3>
+      <ul>
+        <li><b>Weeks 1–2:</b> 2 sets per exercise, stop with about 3 reps left. You're detrained, and a small first dose prevents most of the soreness that would wreck week 2.</li>
+        <li><b>Week 3 onward:</b> 3 sets, stop 1–2 reps short of failure. On curls, raises, triceps and push-ups, the last set can go to failure.</li>
+        <li><b>Never to failure:</b> split squats, single-leg RDLs, pull-up negatives. When balance or control goes, the set is over.</li>
+        <li>Rest 60–90 s on small exercises, 2 min on split squats, rows and push-ups.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Warm-up, 5 minutes</h3>
+      <ul>
+        <li>Arm circles and band pull-aparts, 20 each</li>
+        <li>Bodyweight squats to a bench, 15</li>
+        <li>Hip hinges with hands on hips, 10</li>
+        <li>One light set of the first exercise</li>
+      </ul>
+      <p class="muted">Log every set: exercise, variation, reps, reps left in reserve. Without a log you can't apply the progression rules.</p>
+    </div>
+  </div>
+
+  <div class="days">
+    <article class="day">
+      <div class="day-h"><h3>Upper 1</h3><span>~20 sets · 50 min</span></div>
+      <ol class="ex">
+        <li><span class="i">1</span><span class="nm">Push-up (your ladder level)</span><span class="spec">3 × 8–20</span><span class="note">Use the hardest variation you can do 8+ clean reps of. Body in one line.</span></li>
+        <li><span class="i">2</span><span class="nm">Pull-up negative</span><span class="spec">3 × 4–6</span><span class="note">Step up to the top, lower over 4–5 s. You lower about 1.3× what you can lift, so this loads your full body weight now.</span></li>
+        <li><span class="i">3</span><span class="nm">Inverted row</span><span class="spec">3 × 8–20</span><span class="note">Bar at chest height to start. Squeeze 1 s at the top. No bar: 8 kg one-arm row with a 2 s hold, 20–30 reps.</span></li>
+        <li><span class="i">4</span><span class="nm">8 kg DB shoulder press</span><span class="spec">3 × 15–30</span><span class="note">One arm at a time, seated. Take it close to failure; this is where the light load works.</span></li>
+        <li><span class="i">5</span><span class="nm">8 kg lateral raise</span><span class="spec">3 × 12–25</span><span class="note">Lead with the elbow, stop at shoulder height. Can't get 12 strict? Use one arm, holding a post.</span></li>
+        <li><span class="i">6</span><span class="nm">8 kg DB curl</span><span class="spec">3 × 12–25</span><span class="note">Elbows pinned, no swing, full stretch at the bottom.</span></li>
+        <li><span class="i">7</span><span class="nm">Overhead triceps extension</span><span class="spec">3 × 12–25</span><span class="note">8 kg in both hands behind the head. Get the deep stretch at the bottom.</span></li>
+      </ol>
+    </article>
+
+    <article class="day">
+      <div class="day-h"><h3>Lower 1 · knee focus</h3><span>~15 sets · 45 min</span></div>
+      <ol class="ex">
+        <li><span class="i">1</span><span class="nm">Bulgarian split squat</span><span class="spec">3 × 8–15/leg</span><span class="note">3 s down. Bodyweight first; hold the 8 kg once 15 is easy. 113 kg on one leg is already a heavy load.</span></li>
+        <li><span class="i">2</span><span class="nm">Single-leg RDL, hand on a rail</span><span class="spec">3 × 10–15/leg</span><span class="note">8 kg in the free hand. Holding a rail removes balance as the limit, so the hamstring does the work.</span></li>
+        <li><span class="i">3</span><span class="nm">Walking lunge</span><span class="spec">2 × 12–20/leg</span><span class="note">Cut from 3 sets; split squats already cover this pattern.</span></li>
+        <li><span class="i">4</span><span class="nm">Sliding leg curl</span><span class="spec">3 × 6–15</span><span class="note">Lie on your back, heels on a towel on smooth floor, hips up. Start lowering-only if full reps are too hard.</span></li>
+        <li><span class="i">5</span><span class="nm">Single-leg calf raise on a step</span><span class="spec">3 × 12–20/leg</span><span class="note">2 s pause at the bottom stretch.</span></li>
+        <li><span class="i">6</span><span class="nm">Dead bug</span><span class="spec">2 × 8–12/side</span><span class="note">Lower back stays pressed into the floor.</span></li>
+      </ol>
+    </article>
+
+    <article class="day">
+      <div class="day-h"><h3>Upper 2</h3><span>~18 sets · 45 min</span></div>
+      <ol class="ex">
+        <li><span class="i">1</span><span class="nm">Close-grip push-up</span><span class="spec">3 × 8–20</span><span class="note">Hands under the shoulders, elbows tucked. Also covers triceps.</span></li>
+        <li><span class="i">2</span><span class="nm">Underhand inverted row</span><span class="spec">3 × 8–20</span><span class="note">Palms facing you; more biceps and lower lats.</span></li>
+        <li><span class="i">3</span><span class="nm">Band-assisted pull-up</span><span class="spec">3 × 6–12</span><span class="note">No band yet: repeat the negatives from Upper 1.</span></li>
+        <li><span class="i">4</span><span class="nm">Seated one-arm 8 kg press</span><span class="spec">3 × 15–30</span><span class="note">Same rules as Upper 1.</span></li>
+        <li><span class="i">5</span><span class="nm">Rear-delt fly, chest on incline bench</span><span class="spec">3 × 15–25</span><span class="note">8 kg, one arm at a time if needed. Or band face pulls.</span></li>
+        <li><span class="i">6</span><span class="nm">8 kg hammer curl</span><span class="spec">3 × 12–25</span><span class="note">Last set to failure.</span></li>
+      </ol>
+    </article>
+
+    <article class="day">
+      <div class="day-h"><h3>Lower 2 · hip focus</h3><span>~16 sets · 45 min</span></div>
+      <ol class="ex">
+        <li><span class="i">1</span><span class="nm">Single-leg hip thrust</span><span class="spec">3 × 10–20/leg</span><span class="note">Upper back on the bench, 1 s squeeze at the top. Much harder than a floor bridge.</span></li>
+        <li><span class="i">2</span><span class="nm">Deficit reverse lunge</span><span class="spec">3 × 8–15/leg</span><span class="note">Stand on a low step, step back and down. Easier on the knees than forward lunges.</span></li>
+        <li><span class="i">3</span><span class="nm">Single-leg RDL with pause</span><span class="spec">3 × 10–15/leg</span><span class="note">2 s pause at the bottom, hand on a rail.</span></li>
+        <li><span class="i">4</span><span class="nm">Heels-up goblet squat, 1.5 reps</span><span class="spec">2 × 12–20</span><span class="note">Heels on a plate. Down, halfway up, down, all the way up = 1 rep.</span></li>
+        <li><span class="i">5</span><span class="nm">Sliding leg curl</span><span class="spec">2 × 6–15</span><span class="note">As in Lower 1.</span></li>
+        <li><span class="i">6</span><span class="nm">Calf raise, both legs</span><span class="spec">3 × 15–25</span><span class="note">Hold the 8 kg, pause at the bottom.</span></li>
+      </ol>
+    </article>
+  </div>
+  <p class="muted">Weekly hard sets come to about 10–12 for chest, back, quads, hamstrings and glutes, and 6–9 direct for arms and delts. That's enough to keep and slowly build muscle while dieting, and short enough to finish before the gym fills up.</p>
+</section>
+
+<section id="progress">
+  <div class="sec-head"><span class="eyebrow">04 · How to make it harder</span><h2>Progression</h2></div>
+  <div class="panel">
+    <p><b>Rule:</b> each exercise has a rep range. When every set reaches the top of the range with 1–2 reps still in reserve, move one step right on its ladder next session and drop back to the bottom of the range. Once a set needs more than about 30 reps, burning and breathing end it before the muscle is fully worked. That's when you must move up a step.</p>
+    <div class="ladder">
+      <div class="rung"><b>Push-up</b><div class="steps">hands on bench → <span>floor</span> → <span>hands on bricks (deeper)</span> → <span>feet on bench</span> → <span>+5 kg backpack</span> → <span>+10 kg</span> → …</div></div>
+      <div class="rung"><b>Vertical pull</b><div class="steps">5 s negatives → <span>band-assisted reps</span> → <span>1 full rep + negatives</span> → <span>sets of 3–5</span> → <span>sets of 8+</span>. Every kg you lose makes this easier.</div></div>
+      <div class="rung"><b>Inverted row</b><div class="steps">bar at chest height → <span>bar at waist</span> → <span>bar at hip</span> → <span>feet on bench</span> → <span>backpack on chest</span></div></div>
+      <div class="rung"><b>Split squat</b><div class="steps">bodyweight → <span>hold 8 kg</span> → <span>backpack + 8 kg</span> → <span>front foot on a plate (deficit)</span> → <span>add backpack weight</span></div></div>
+      <div class="rung"><b>Single-leg RDL / hip thrust</b><div class="steps">8 kg → <span>backpack</span> → <span>backpack + 8 kg</span> → <span>add pauses</span></div></div>
+      <div class="rung"><b>8 kg isolation</b><div class="steps">12–25 reps → <span>25–30 reps</span> → <span>2 s pause at the hardest point</span> → <span>add a band on top of the dumbbell</span></div></div>
+    </div>
+  </div>
+  <div class="two">
+    <div class="panel">
+      <h3>Buy in this order</h3>
+      <ol>
+        <li><b>Resistance band set</b> (4–5 loop bands, about ₹800–1,500). Pull-up assistance, face pulls, and extra load on curls and presses. The best ₹1,000 you can spend here.</li>
+        <li><b>A backpack you already own</b>, filled with books, water bottles or a bag of sand. 10–20 kg for push-ups, split squats and rows. Free.</li>
+        <li><b>Digital kitchen scale</b> (about ₹300–500). Needed for the diet, not the gym.</li>
+        <li><b>Optional:</b> a cheap adjustable dumbbell set, 20 kg or more.</li>
+      </ol>
+    </div>
+    <div class="panel">
+      <h3>Be honest about the gym</h3>
+      <p>If any commercial gym within reach costs ₹1,000–1,500 a month, it's the single biggest upgrade available. Heavier loads mean shorter sessions, and keeping real strength numbers is the clearest sign you're holding muscle during the cut. If you can't afford it, the plan above works. It just takes more effort per set.</p>
+      <p>Deload every 8 weeks: one week at half the sets. Line it up with the diet break.</p>
+    </div>
+  </div>
+</section>
+
+<section id="diet">
+  <div class="sec-head"><span class="eyebrow">05 · Chennai, ₹180–230/day</span><h2>Diet</h2></div>
+  <p>Two day templates to alternate. Weigh rice, chapati, chicken and oil for the first 3 weeks; after that, you'll be able to judge portions by eye. Food values are standard nutrition-table figures, rounded. Prices are my estimates; check them against your local market.</p>
+
+  <h3>Day A · chicken day · ~2,260 kcal, ~165 g protein</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Food</th><th>Amount</th><th class="n">kcal</th><th class="n">Protein</th></tr></thead>
+    <tbody>
+      <tr class="meal"><td colspan="4">Breakfast, after the gym</td></tr>
+      <tr><td>Omelette, 1 tsp oil</td><td>3 whole eggs + 3 whites</td><td class="n">310</td><td class="n">30 g</td></tr>
+      <tr><td>Idli + sambar</td><td>3 idli, 1 cup sambar</td><td class="n">280</td><td class="n">11 g</td></tr>
+      <tr class="meal"><td colspan="4">Lunch</td></tr>
+      <tr><td>Cooked rice</td><td>150 g (weighed)</td><td class="n">195</td><td class="n">4 g</td></tr>
+      <tr><td>Chicken curry, 1 tsp oil</td><td>150 g raw boneless (~200 g curry cut)</td><td class="n">250</td><td class="n">32 g</td></tr>
+      <tr><td>Dal or sambar</td><td>1 cup</td><td class="n">140</td><td class="n">9 g</td></tr>
+      <tr><td>Poriyal, 1 tsp oil</td><td>1 cup vegetables</td><td class="n">90</td><td class="n">2 g</td></tr>
+      <tr><td>Curd</td><td>100 g</td><td class="n">60</td><td class="n">4 g</td></tr>
+      <tr class="meal"><td colspan="4">Evening</td></tr>
+      <tr><td>Soya chunk stir-fry, 1 tsp oil</td><td>50 g dry</td><td class="n">240</td><td class="n">27 g</td></tr>
+      <tr><td>Tea or filter coffee, no sugar</td><td>1 cup</td><td class="n">30</td><td class="n">1 g</td></tr>
+      <tr class="meal"><td colspan="4">Dinner</td></tr>
+      <tr><td>Chapati, no ghee</td><td>2 medium</td><td class="n">240</td><td class="n">7 g</td></tr>
+      <tr><td>Chicken, 1 tsp oil</td><td>150 g raw boneless</td><td class="n">250</td><td class="n">32 g</td></tr>
+      <tr><td>Cucumber, carrot, onion salad</td><td>1 bowl</td><td class="n">30</td><td class="n">1 g</td></tr>
+      <tr class="meal"><td colspan="4">Before bed</td></tr>
+      <tr><td>Toned milk</td><td>250 ml</td><td class="n">145</td><td class="n">8 g</td></tr>
+      <tr class="total"><td colspan="2">Total · about ₹220–240</td><td class="n">2,260</td><td class="n">168 g</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Day B · budget day · ~2,200 kcal, ~140 g protein</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Meal</th><th>What changes from Day A</th><th class="n">kcal</th><th class="n">Protein</th></tr></thead>
+    <tbody>
+      <tr><td>Breakfast</td><td>Same</td><td class="n">590</td><td class="n">41 g</td></tr>
+      <tr><td>Lunch</td><td>60 g dry soya chunk curry instead of chicken</td><td class="n">730</td><td class="n">50 g</td></tr>
+      <tr><td>Evening</td><td>2 boiled eggs + tea, no sugar</td><td class="n">175</td><td class="n">14 g</td></tr>
+      <tr><td>Dinner</td><td>2 chapati + 100 g paneer bhurji (1 tsp oil) + salad</td><td class="n">575</td><td class="n">26 g</td></tr>
+      <tr><td>Before bed</td><td>Toned milk 250 ml</td><td class="n">145</td><td class="n">8 g</td></tr>
+      <tr class="total"><td colspan="2">Total · about ₹170–190</td><td class="n">2,215</td><td class="n">139 g</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted">Day B sits at the 140 g floor. That's fine a few days a week. To raise it cheaply, add 20 g more dry soya at lunch (+10 g protein, +70 kcal).</p>
+
+  <div class="two">
+    <div class="panel">
+      <h3>Cost of 25 g protein</h3>
+      <div class="tbl" style="border:0"><table style="min-width:0">
+        <thead><tr><th>Source</th><th class="n">≈ ₹</th><th class="n">kcal</th></tr></thead>
+        <tbody>
+          <tr><td>Soya chunks, 48 g dry</td><td class="n">10–12</td><td class="n">165</td></tr>
+          <tr><td>Dal, 110 g dry</td><td class="n">17</td><td class="n">380</td></tr>
+          <tr><td>Eggs, 4</td><td class="n">25–28</td><td class="n">290</td></tr>
+          <tr><td>Sardine / mackerel, 130 g</td><td class="n">25–40</td><td class="n">200</td></tr>
+          <tr><td>Chicken, 110 g boneless</td><td class="n">35–45</td><td class="n">135</td></tr>
+          <tr><td>Toned milk, 800 ml</td><td class="n">45</td><td class="n">465</td></tr>
+          <tr><td>Paneer, 140 g</td><td class="n">60</td><td class="n">370</td></tr>
+          <tr><td>Whey, 1 scoop</td><td class="n">60–90</td><td class="n">125</td></tr>
+        </tbody>
+      </table></div>
+      <p class="muted">Soya is cheapest by both money and calories. Chicken and whey are calorie-cheap but cost more. Dal, milk and paneer bring a lot of calories with their protein, so count them as food, not protein sources. Soy at these amounts doesn't lower testosterone in men; the studies on this are consistent. It can cause gas, so build up over a week.</p>
+    </div>
+    <div class="panel">
+      <h3>Where Chennai diets leak calories</h3>
+      <ul>
+        <li><b>Sugar in coffee/tea:</b> 60–90 kcal a cup. Three cups a day is a meal.</li>
+        <li><b>Coconut chutney:</b> 2 tbsp ≈ 80–100 kcal. Use sambar, tomato or mint chutney.</li>
+        <li><b>Ghee roast / oil dosa:</b> +100–150 kcal over a plain dosa.</li>
+        <li><b>Cooking oil:</b> 1 tbsp = 120 kcal. "1 tsp" means a measuring spoon, not a pour.</li>
+        <li><b>Meals with unlimited rice:</b> each refill is 200–300 kcal.</li>
+        <li><b>Parotta</b> 250–300 each, <b>vada</b> 150–200 each, <b>biryani</b> 800–1,200 a plate.</li>
+        <li><b>Groundnuts:</b> 30 g = 170 kcal. That's why they're out of the snack slot.</li>
+      </ul>
+      <p><b>Eating out or a festival:</b> pick one plate, protein first, no refills, then get back on plan at the next meal. One 1,000 kcal meal is about 0.1 kg of fat. The damage comes from the "day is ruined anyway" weekend that follows.</p>
+    </div>
+  </div>
+</section>
+
+<section id="rules">
+  <div class="sec-head"><span class="eyebrow">06 · Every Sunday, 5 minutes</span><h2>Weekly rules</h2></div>
+  <p>Weigh Mon, Wed, Fri: after the toilet, before food, same clothes. Compare weekly <b>averages</b>, never single weigh-ins. One salty meal or a hard leg day can add 1–2 kg of water overnight.</p>
+  <div class="rules">
+    <div class="rule"><span class="if">Weeks 1–2</span><span class="then">Ignore the scale. The first 2–3 kg are water and stored carbs, not fat.</span></div>
+    <div class="rule"><span class="if">Average loss is 0.5–1% of body weight per week (≈ 0.6–1.1 kg now)</span><span class="then">Change nothing.</span></div>
+    <div class="rule"><span class="if">Less than 0.5%/week for 2 weeks and waist isn't shrinking</span><span class="then">First check honestly: weighed portions, oil, coffee sugar, weekends. If those were on plan, remove 150–200 kcal (about half a cup of rice) or add 2,000 steps. One change at a time.</span></div>
+    <div class="rule"><span class="if">Scale flat, but waist down and reps up</span><span class="then">You're losing fat and gaining muscle. Change nothing for 2 more weeks.</span></div>
+    <div class="rule"><span class="if">More than 1.2%/week after week 4, or reps falling on 2+ exercises for 2 weeks</span><span class="then">Add 150–200 kcal as rice or chapati around training. Losing faster than this costs muscle.</span></div>
+    <div class="rule"><span class="if">Every 10–12 weeks</span><span class="then">Eat at maintenance for 1–2 weeks (about +600 kcal, mostly carbs). Keep training. Expect +1–2 kg of water on the scale, not fat. This makes the next block easier to stick to.</span></div>
+    <div class="rule"><span class="if">Sleep under 6.5 h most nights</span><span class="then">Fix this before cutting calories again. In one controlled study, dieters sleeping 5.5 h lost the same weight as those sleeping 8.5 h, but 55% less of it was fat.</span></div>
+  </div>
+  <div class="panel">
+    <h3>What to track</h3>
+    <ul>
+      <li><b>Weight</b> 3× per week → weekly average</li>
+      <li><b>Waist</b> at the navel, every 2 weeks: relaxed, after a normal breath out, tape level</li>
+      <li><b>Photos</b> every 2 weeks: same spot, light, pose and time of day</li>
+      <li><b>Steps</b> daily; <b>sets, reps and reps-in-reserve</b> every session; <b>sleep</b> hours</li>
+    </ul>
+  </div>
+</section>
+
+<section id="timeline">
+  <div class="sec-head"><span class="eyebrow">07 · Realistic, not motivational</span><h2>Timeline</h2></div>
+  <div class="tbl"><table>
+    <thead><tr><th>Week</th><th class="n">Expected weight</th><th>What happens</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">0</td><td class="n">113</td><td>Start</td></tr>
+      <tr><td class="mono">4</td><td class="n">108–109</td><td>Includes 2–3 kg of water. Faster than it will ever be again.</td></tr>
+      <tr><td class="mono">12</td><td class="n">101–103</td><td>First real check: waist should be down 6–8 cm. Retest all calorie numbers.</td></tr>
+      <tr><td class="mono">13–14</td><td class="n">+1–2</td><td>Maintenance break + deload week</td></tr>
+      <tr><td class="mono">26</td><td class="n">92–96</td><td>Around your previous best. Training loads should be higher than at week 0.</td></tr>
+      <tr><td class="mono">27–28</td><td class="n">+1–2</td><td>Second maintenance break</td></tr>
+      <tr><td class="mono">40</td><td class="n">85–89</td><td>Loss slows to ~0.5 kg/week. Decide the end weight from waist and photos.</td></tr>
+      <tr><td class="mono">50–56</td><td class="n">~80–84</td><td>Only if you still need it. Then raise calories by 100–200/week to maintenance.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><p><strong>80 kg is a guess, not a requirement.</strong> You carry visible muscle, so you might look lean at 84–88 kg. Use the waist as the real target: below 90 cm (half your height) is the health threshold, and a lean look at 180 cm usually lands somewhere in the low-to-mid 80s cm. I can't estimate your body fat from the numbers I have, so treat the weight target as provisional.</p></div>
+</section>
+
+<section id="health">
+  <div class="sec-head"><span class="eyebrow">08 · Things the old plan skipped</span><h2>Health and recovery</h2></div>
+  <div class="two">
+    <div class="panel">
+      <h3>Blood test, once now</h3>
+      <p>South Asians develop diabetes and fatty liver at lower body weights than Europeans. A basic panel in Chennai costs roughly ₹1,000–2,000:</p>
+      <ul>
+        <li>HbA1c and fasting glucose</li>
+        <li>Lipid profile</li>
+        <li>Liver enzymes (ALT/SGPT) for fatty liver</li>
+        <li>TSH (thyroid)</li>
+        <li>Vitamin D and B12, both commonly low in India</li>
+      </ul>
+      <p>Retest at week 26. Loud snoring or daytime sleepiness at your weight is worth mentioning to a doctor (sleep apnea).</p>
+    </div>
+    <div class="panel">
+      <h3>Supplements worth the money</h3>
+      <ul>
+        <li><b>Creatine monohydrate</b>, 3–5 g daily, any time (about ₹5–8/day). The best-supported supplement for keeping strength in a cut. It adds 1–2 kg of water in the first weeks; expect it so you don't panic at the scale.</li>
+        <li><b>Vitamin D</b> only if the test shows it's low.</li>
+        <li><b>Whey</b> only on days you can't reach 140 g from food.</li>
+        <li><b>Skip:</b> fat burners, BCAAs, "cutting" stacks.</li>
+      </ul>
+      <p><b>Heat:</b> morning sessions in Chennai mean heavy sweating. Drink 3+ litres a day and don't cut salt to zero; cramps and dizziness on lower days usually come from sodium loss.</p>
+    </div>
+  </div>
+</section>
+
+<section id="relapse">
+  <div class="sec-head"><span class="eyebrow">09 · Because it happened before</span><h2>Regain plan</h2></div>
+  <p>Last time, a layoff turned into a regain because there was no smaller routine to fall back on. Plans fail in bad weeks. Decide now what a bad week looks like.</p>
+  <div class="two">
+    <div class="panel">
+      <h3>Minimum week (when life gets in the way)</h3>
+      <ul>
+        <li>2 home sessions of 25 min: push-ups, backpack split squats, band rows, single-leg hip thrusts</li>
+        <li>8,000 steps a day</li>
+        <li>140 g protein; skip the bedtime milk if needed</li>
+        <li>Weigh 3× per week. Never stop weighing.</li>
+      </ul>
+      <p class="muted">This won't move you forward much. It keeps you from going backward, and that's the job.</p>
+    </div>
+    <div class="panel">
+      <h3>Restart trigger</h3>
+      <p>If your weekly average rises <b>2 kg above your lowest average</b>, go back to weighing food and the full program the next day. Don't wait until Monday or the end of the month.</p>
+      <p>After you reach your goal, stay at maintenance for at least 3 months before chasing anything else. Fat lost is easiest to regain in the first year.</p>
+    </div>
+  </div>
+</section>
+
+<footer>Calorie, protein and price figures are estimates from standard food tables and typical Chennai prices; your own scale and tape data overrides them after week 3. This is a training and nutrition plan, not medical advice.</footer>
+</div>
+</body>
+</html>
